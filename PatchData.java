@@ -3,7 +3,6 @@ package com.kdeveloper.utils;
 import com.kdgdev.nxt.utils.FSUtils;
 import com.kdgdev.nxt.utils.FileUtils;
 import com.kdgdev.nxt.utils.IOUtils;
-import com.kdgdev.nxt.utils.MethodData;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 import java.io.File;
