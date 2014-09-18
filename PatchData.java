@@ -43,7 +43,7 @@ public class PatchData {
         Pattern replacefile_p = Pattern.compile("^\\s{0,}replaceinfile\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
         Pattern copyfile_p = Pattern.compile("^\\s{0,}copyfile\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
         Pattern mapping_p = Pattern.compile("^\\s{0,}mapping\\s+\\\"(.*)\\\"\\s{0,}\\;");
-        Pattern replacemethod_p = Pattern.compile("^\\s{0,}methodreplace\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*?)\\\"\\s+\\\"(.*?)\\\"\\s{0,}\\;");
+        Pattern replacemethod_p = Pattern.compile("^\\s{0,}methodreplace\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
         Pattern replacestrings_p = Pattern.compile("^\\s{0,}methodstrings\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*?)\\\"\\s+\\\"(.*?)\\\"\\s{0,}\\;");
         for (String line : fileLines) {
             Matcher appfile_m = appfile_p.matcher(line);
