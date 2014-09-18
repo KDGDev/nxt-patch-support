@@ -1,5 +1,6 @@
 package com.kdeveloper.utils;
 
+import com.kdeveloper.translation.KDevAPI;
 import com.kdgdev.nxt.utils.FSUtils;
 import com.kdgdev.nxt.utils.FileUtils;
 import com.kdgdev.nxt.utils.IOUtils;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -28,6 +30,7 @@ public class PatchData {
     private LinkedHashMap<String, String> copyFile = new LinkedHashMap<>();
     private LinkedHashMap<String, LinkedHashMap<String, String>> replaceinfile = new LinkedHashMap<>();
     private LinkedHashMap<String, LinkedHashMap<String, MethodData>> replacemethod = new LinkedHashMap<>();
+    private LinkedHashMap<String, LinkedList<ReplaceData>> replacestrings = new LinkedHashMap<>();
     public String appfile = null;
     public String apppackage = null;
     public String mapping = null;
@@ -40,7 +43,8 @@ public class PatchData {
         Pattern replacefile_p = Pattern.compile("^\\s{0,}replaceinfile\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
         Pattern copyfile_p = Pattern.compile("^\\s{0,}copyfile\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
         Pattern mapping_p = Pattern.compile("^\\s{0,}mapping\\s+\\\"(.*)\\\"\\s{0,}\\;");
-        Pattern replacemethod_p = Pattern.compile("^\\s{0,}methodreplace\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s{0,}\\;");
+        Pattern replacemethod_p = Pattern.compile("^\\s{0,}methodreplace\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*?)\\\"\\s+\\\"(.*?)\\\"\\s{0,}\\;");
+        Pattern replacestrings_p = Pattern.compile("^\\s{0,}methodstrings\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*)\\\"\\s+\\\"(.*?)\\\"\\s+\\\"(.*?)\\\"\\s{0,}\\;");
         for (String line : fileLines) {
             Matcher appfile_m = appfile_p.matcher(line);
             if (appfile_m.matches()) {
@@ -94,6 +98,18 @@ public class PatchData {
                 }
             }
 
+            Matcher replacestrings_m = replacestrings_p.matcher(line);
+            if (replacestrings_m.matches()) {
+                ReplaceData replacerData = new ReplaceData(replacestrings_m.group(3), replacestrings_m.group(4), replacestrings_m.group(2), replacestrings_m.group(5), replacestrings_m.group(6));
+                if(replacestrings.containsKey(replacestrings_m.group(1))) {
+                    replacestrings.get(replacestrings_m.group(1)).add(replacerData);
+                } else {
+                    LinkedList<ReplaceData> list = new LinkedList<>();
+                    list.add(replacerData);
+                    replacestrings.put(replacestrings_m.group(1), list);
+                }
+            }
+
         }
     }
 
@@ -129,7 +145,7 @@ public class PatchData {
         return sb.toString();
     }
 
-    public void patch(File here, File smali) throws IOException {
+    public void patch(File here, File smali, File apk) throws IOException {
         if (appfile == null && apppackage == null) throw new RuntimeException("Where I can patch it?!");
 
         for (String fileFrom : copyFile.keySet()) {
@@ -190,6 +206,22 @@ public class PatchData {
             }
         }
 
+        for (String key : replacestrings.keySet()) {
+            File patchable = new File(FileUtils.fixSeparator(key.replace("%here%", here.getCanonicalPath()).replace("%smali%", smali.getCanonicalPath())));
+            if (!patchable.exists()) continue;
+            String replaceable_origin = new String(IOUtils.readFile(patchable), "UTF-8");
+            String replaceable = new String(IOUtils.readFile(patchable), "UTF-8");
+            KDevAPI kapi = new KDevAPI();
+            for(ReplaceData replacer : replacestrings.get(key)) {
+                String originalResourceId = kapi.getResouceId(apk, replacer.getType(), replacer.getName());
+                String newResourceId = kapi.getResouceId(apk, replacer.getType(), replacer.getReplacename());
+                replaceable = replaceable.replace(originalResourceId + replacer.getAdditional1(), newResourceId + replacer.getAdditional2());
+                if (!replaceable_origin.equals(replaceable)) {
+                    LOGGER.info("Replacing " + originalResourceId + replacer.getAdditional1() + " to " + newResourceId + replacer.getAdditional2() + " in " + patchable.getName());
+                    IOUtils.writeFile(replaceable.getBytes("UTF-8"), patchable);
+                }
+            }
+        }
     }
 
     private final static Logger LOGGER = Logger.getLogger(PatchData.class.getName());
